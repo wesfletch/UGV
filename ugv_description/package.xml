@@ -23,6 +23,7 @@
   <export>
     <!-- export URDF for gazebo_ros to find -->
     <gazebo_ros gazebo_model_path="${prefix}/urdf"/>
+    <build_type>ament_cmake</build_type>
   </export>
 
 </package>

@@ -60,6 +60,6 @@
   <!-- The export tag contains other, unspecified, tags -->
   <export>
     <!-- Other tools can request additional information be placed here -->
-
+	<build_tool>ament_cmake</build_tool>
   </export>
 </package>
