@@ -19,6 +19,7 @@ find_package(ament_cmake REQUIRED)
 find_package(rclpy REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(robot_localization REQUIRED)
+find_package(slam_toolbox REQUIRED)
 
 ################################################
 ## Declare ROS messages, services and actions ##
@@ -27,26 +28,6 @@ find_package(robot_localization REQUIRED)
 # rosidl_generate_interfaces(${PROJECT_NAME}
 #   # ${msg_files}
 #   DEPENDENCIES std_msgs
-# )
-
-################################################
-## Declare ROS dynamic reconfigure parameters ##
-################################################
-
-## To declare and build dynamic reconfigure parameters within this
-## package, follow these steps:
-## * In the file package.xml:
-##   * add a build_depend and a exec_depend tag for "dynamic_reconfigure"
-## * In this file (CMakeLists.txt):
-##   * add "dynamic_reconfigure" to
-##     find_package(catkin REQUIRED COMPONENTS ...)
-##   * uncomment the "generate_dynamic_reconfigure_options" section below
-##     and list every .cfg file to be processed
-
-## Generate dynamic reconfigure parameters in the 'cfg' folder
-# generate_dynamic_reconfigure_options(
-#   cfg/DynReconf1.cfg
-#   cfg/DynReconf2.cfg
 # )
 
 ###########
@@ -131,6 +112,10 @@ include_directories(
 #   # myfile2
 #   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 # )
+
+install(DIRECTORY 
+  config
+  DESTINATION share/${PROJECT_NAME}/)
 
 #############
 ## Testing ##

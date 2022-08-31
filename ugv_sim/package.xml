@@ -8,9 +8,9 @@
   <maintainer email="wes@todo.todo">wes</maintainer>
   <license>TODO: License declaration</license>
 
-  <buildtool_depend>catkin</buildtool_depend>
-  <build_depend>hector_gazebo_plugins</build_depend>
-  <exec_depend>hector_gazebo_plugins</exec_depend>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>ament_cmake_python</buildtool_depend>
+  <depend>hector_gazebo_plugins</depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>
@@ -18,6 +18,7 @@
     <gazebo_ros gazebo_model_path="${prefix}/models"
                 gazebo_plugin_path="${prefix}/velodyne_simulator"
                 gazebo_resource_path="${prefix}/meshes" />
+    <build_type>ament_cmake</build_type> 
   </export>
 
 </package>
