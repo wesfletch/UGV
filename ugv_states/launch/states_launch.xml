@@ -1,0 +1,20 @@
+<launch>
+
+    <!-- CLI Args -->
+    <arg name="bypass_boot" 
+         description="[true/false] Run the bypass_boot script to skip preflight checks."
+         default="false" />
+
+    <node name="sm" 
+          pkg="ugv_states" 
+          exec="state_machine.py" 
+          output="screen">
+        <param from="$(find-pkg-share ugv_nav)/config/waypoints.yaml" />
+    </node>    
+
+    <node if="$(var bypass_boot)"
+          name="bypass_boot" 
+          pkg="ugv_states" 
+          exec="bypass_boot.py" />
+
+</launch>
