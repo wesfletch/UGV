@@ -19,35 +19,6 @@ find_package(ament_cmake REQUIRED)
 find_package(rclpy REQUIRED)
 find_package(rclcpp REQUIRED)
 
-################################################
-## Declare ROS messages, services and actions ##
-################################################
-
-# rosidl_generate_interfaces(${PROJECT_NAME}
-#   ${msg_files}
-#   DEPENDENCIES std_msgs
-# )
-
-################################################
-## Declare ROS dynamic reconfigure parameters ##
-################################################
-
-## To declare and build dynamic reconfigure parameters within this
-## package, follow these steps:
-## * In the file package.xml:
-##   * add a build_depend and a exec_depend tag for "dynamic_reconfigure"
-## * In this file (CMakeLists.txt):
-##   * add "dynamic_reconfigure" to
-##     find_package(catkin REQUIRED COMPONENTS ...)
-##   * uncomment the "generate_dynamic_reconfigure_options" section below
-##     and list every .cfg file to be processed
-
-## Generate dynamic reconfigure parameters in the 'cfg' folder
-# generate_dynamic_reconfigure_options(
-#   cfg/DynReconf1.cfg
-#   cfg/DynReconf2.cfg
-# )
-
 ###########
 ## Build ##
 ###########
@@ -131,19 +102,11 @@ include_directories(
 #   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 # )
 
-#############
-## Testing ##
-#############
-
-## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_ugv_description.cpp)
-# if(TARGET ${PROJECT_NAME}-test)
-#   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
-# endif()
-
-## Add folders to be run by python nosetests
-# catkin_add_nosetests(test)
-
+# install launch files
+install(DIRECTORY
+  urdf
+  DESTINATION share/${PROJECT_NAME}/
+)
 
 ament_export_include_directories(
   # replaces INCLUDE_DIRS
