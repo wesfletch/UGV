@@ -63,10 +63,8 @@ def generate_launch_description():
     )
 
     # generate robot description (URDF) by processing model.urdf.xacro
-    # get file path
     robot_desc_path = os.path.dirname(robot_desc_file)
     robot_desc_urdf_path = os.path.join(robot_desc_path, 'model.urdf')
-
     # load robot URDF by expanding our xacro definition (with the xacro command)
     with open(robot_desc_urdf_path, 'w') as urdf_file:
         xacro_cmd = subprocess.run(['xacro', '-v', robot_desc_file], 
