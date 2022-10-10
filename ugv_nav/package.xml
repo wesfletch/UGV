@@ -10,6 +10,7 @@
   <exec_depend>ros2launch</exec_depend>
   <depend>robot_localization</depend>
   <depend>slam_toolbox</depend>
+  <depend>pointcloud_to_laserscan</depend>
     
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

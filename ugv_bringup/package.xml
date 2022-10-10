@@ -7,10 +7,12 @@
   <license>TODO</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
+  <!-- <buildtool_depend>ament_cmake_python</buildtool_depend> -->
 
-  <!-- The export tag contains other, unspecified, tags -->
+  <exec_depend>ros2launch</exec_depend>
+
   <export>
-    <!-- Other tools can request additional information be placed here -->
-	  <build_tool>ament_cmake</build_tool>
+	  <build_type>ament_cmake</build_type>
   </export>
+
 </package>
