@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 
-''' Allows teleoperation of a simulation vehicle with the arrow keys
-    assumes differential drive control, and that the base of the robot listens on /cmd_vel
-    publishes Twist messages'''
+"""Allows teleoperation of a simulation vehicle with the arrow keys.
+
+Assumes differential drive control. Publishes geometry_msg/Twist messages on the provided topic.
+"""
 
 import sys
 from typing import Dict, List
+
 from pynput import keyboard
 
 import rclpy
@@ -15,7 +17,7 @@ import geometry_msgs.msg as geom
 
 class MotorsPub(rclpy.node.Node):
 
-    def __init__(self, topic: str = '/cmd_vel', freq: int = 50, speeds: List[float] = [1.2,-1.2,1.2,-1.2]) -> None:
+    def __init__(self, topic: str = '/cmd_vel', freq: int = 50, speeds: List[float] = [1.2,-1.2,-1.2,1.2]) -> None:
         """A ROS2 node that publishes motor commmands on provided topic at provided freq based on keyboard inputs.
         
         Intended to control differential drive vehicles (in sim, mostly).
@@ -64,7 +66,7 @@ class MotorsPub(rclpy.node.Node):
 
         Fires at the frequency provided to the constructor.
         """
-        
+
         self.publisher.publish(self.twist)
         
     def on_press_cb(self, key: keyboard.Key) -> bool:
@@ -77,12 +79,18 @@ class MotorsPub(rclpy.node.Node):
             bool: Returns false to stop listener (when ESC is pressed)
         """
 
+        # If ESC is pressed, exits keyboard listener
+        if key == keyboard.Key.esc:
+            # Stop listener
+            return False     
+
         try:
             k = key.char
         except AttributeError:
             k = key.name
 
-        # modify twist message depending on which arrow key was pressed    
+        # Modifies twist message depending on which arrow key event we captured.
+        # TODO: uses IF rather than ELIF, can multiple keys be captured in a single callback?    
         if k == 'left':
             self.twist.angular.z = self.speeds['CCW']
         if k == 'right':
@@ -92,12 +100,7 @@ class MotorsPub(rclpy.node.Node):
         if k == 'down':
             self.twist.linear.x = self.speeds['REVERSE']
 
-        # if Escape is pressed, exit keyboard listener
-        if key == keyboard.Key.esc:
-            # Stop listener
-            return False      
-        
-        return True
+        return True     # True keeps keyboard listener running.
 
     def on_release_cb(self, key: keyboard.Key) -> None:
         """When a key is released, zero that key out in the Twist message

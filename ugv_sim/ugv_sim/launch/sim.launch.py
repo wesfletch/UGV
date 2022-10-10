@@ -1,52 +1,31 @@
-import os, sys, subprocess
+import os
+import sys
 
 from ament_index_python import get_package_share_directory
 
-from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
+from launch import LaunchDescription, LaunchContext
+from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch.actions import IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration, Command, TextSubstitution
+from launch.substitutions import LaunchConfiguration, Command, PathJoinSubstitution, FindExecutable
 from launch_ros.actions import Node
 from launch_ros.descriptions import ParameterValue
+from launch_ros.substitutions import FindPackageShare
 
-def generate_launch_description():
+def launch_setup(context: LaunchContext, *foo, **bar):
 
-    # CLI args for configuring nodes, since apparently ROS doesn't allow substitutions inside default values
-    # set defaults
-    robot_name = "choo_2"
-    robot_desc_file = os.path.join(get_package_share_directory('ugv_description'),
-                                   'urdf', robot_name, 'model.urdf.xacro')
-    world_file_path = os.path.join(get_package_share_directory('ugv_sim'),
-                                   'worlds','course.world')
-    rviz_cfg_file = os.path.join(get_package_share_directory('ugv_sim'),
-                                 'rviz','bowser2.rviz')
-    # read in sys args that we need before launch-time by pretending they're normal launch args
-    for arg in sys.argv:       
-        if arg.startswith("robot:="):
-            robot_name = arg.split(":=")[1]
-        elif arg.startswith("robot_desc_file:="):
-            robot_desc_file = arg.split(":=")[1]
-        elif arg.startswith("world_file:="):
-            world_file_path = arg.split(":=")[1]
-        elif arg.startswith("rviz_cfg:="):
-            rviz_cfg_file = arg.split(":=")[1]
+    description_package = LaunchConfiguration("description_package")
+    robot_name          = LaunchConfiguration("robot_name")
+    world_file          = LaunchConfiguration("world_file")
+    rviz_cfg_file       = LaunchConfiguration("rviz_cfg")
 
-    # normal launch args
-    arg_gaz_client = DeclareLaunchArgument(
-        "gaz_client",
-        description="[true/false] Launch the full Gazebo GUI (gzclient). Default false.",
-        default_value='false',
-    )
-    arg_rviz = DeclareLaunchArgument(
-        "rviz",
-        description="[true/false] Launch RVIZ window with rviz_cfg as config file. Default false.",
-        default_value='false',
-    )
-    arg_use_sim_time = DeclareLaunchArgument(
-        "use_sim_time",
-        description="[true/false] Whether nodes launched by this file should use sim time (as opposed to wall time).",
-        default_value='true',
+    # generate robot description (URDF) by processing model.urdf.xacro with the 'xacro ...' command
+    robot_description_content = Command(
+        [
+            PathJoinSubstitution([FindExecutable(name="xacro")]),
+            " ",
+            PathJoinSubstitution([FindPackageShare(description_package), "urdf", robot_name, "model.urdf.xacro"]),
+        ]
     )
 
     # launch gzserver
@@ -56,24 +35,12 @@ def generate_launch_description():
     include_launch_gazebo = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(gazebo_launch_file),
         launch_arguments={
-            'verbose':'true',
-            'paused':'false',
-            'world':world_file_path,
+            'verbose': 'true',
+            'paused': 'false',
+            'world': world_file,
         }.items()
     )
 
-    # generate robot description (URDF) by processing model.urdf.xacro
-    robot_desc_path = os.path.dirname(robot_desc_file)
-    robot_desc_urdf_path = os.path.join(robot_desc_path, 'model.urdf')
-    # load robot URDF by expanding our xacro definition (with the xacro command)
-    with open(robot_desc_urdf_path, 'w') as urdf_file:
-        xacro_cmd = subprocess.run(['xacro', '-v', robot_desc_file], 
-                                   stdout=urdf_file, 
-                                   stderr=subprocess.PIPE,
-                                   universal_newlines=True)
-    with open(robot_desc_urdf_path, 'r') as infp:
-        robot_desc_urdf = infp.read()
-        
     # robot_state_publisher (load with xacro expanded to URDF)
     node_robot_state_pub = Node(
         package="robot_state_publisher",
@@ -81,8 +48,8 @@ def generate_launch_description():
         name="robot_state_publisher",
         # output="screen",
         parameters=[{
-            'use_sim_time':LaunchConfiguration('use_sim_time'),
-            'robot_description':robot_desc_urdf,
+            'use_sim_time': LaunchConfiguration('use_sim_time'),
+            'robot_description': ParameterValue(value=robot_description_content, value_type=str), # explicit str to stop it trying to parse the xml
         }],
         # arguments=['--ros-args', '--log-level', 'debug'],
     )
@@ -94,7 +61,7 @@ def generate_launch_description():
         name="spawn_entity",
         output="screen",
         arguments=[
-            '-file', robot_desc_urdf_path,
+            '-topic', '/robot_description',     # use output of robot_state_publisher to spawn robot
             '-entity', robot_name, 
         ]
     )
@@ -115,15 +82,66 @@ def generate_launch_description():
         arguments=['-d', rviz_cfg_file],
     )
 
+    nodes_to_start = [
+        include_launch_gazebo, 
+        node_robot_state_pub, 
+        node_spawn_robot,
+        node_joint_state_pub,
+        node_rviz, 
+    ]
+
+    return nodes_to_start
+
+def generate_launch_description():
+
+    # launch args
+    arg_robot_name = DeclareLaunchArgument(
+        "robot_name",
+        description="The name of the robot to be launched. Will be used to match model name and namespace simulation outputs.",
+        default_value="choo_2",
+    )
+    arg_world_file = DeclareLaunchArgument(
+        "world_file",
+        description="Gazebo world file to launch Gazebo with.",
+        default_value=os.path.join(get_package_share_directory('ugv_sim'), 'worlds', 'course.world')
+    )
+    arg_description_package = DeclareLaunchArgument(
+        "description_package",
+        description="The ROS package that contains the robot description (.urdf and .xacro files).",
+        default_value="ugv_description",
+    )
+    arg_gaz_client = DeclareLaunchArgument(
+        "gaz_client",
+        description="[true/false] Launch the full Gazebo GUI (gzclient). Default false.",
+        default_value='false',
+    )
+    arg_rviz = DeclareLaunchArgument(
+        "rviz",
+        description="[true/false] Launch RVIZ window with rviz_cfg as config file. Default false.",
+        default_value='false',
+    )
+    arg_rviz_cfg = DeclareLaunchArgument(
+        "rviz_cfg",
+        description="RVIZ cfg file (.rviz) to launch RVIZ with.",
+        default_value=os.path.join(get_package_share_directory('ugv_sim'), 'rviz', 'bowser2.rviz'),
+    )
+    arg_use_sim_time = DeclareLaunchArgument(
+        "use_sim_time",
+        description="[true/false] Whether nodes launched by this file should use sim time (as opposed to wall time).",
+        default_value='true',
+    )
+
     return LaunchDescription([
-        # arg_world_file,
+        arg_robot_name,
+        arg_world_file,
+        arg_description_package,
         arg_gaz_client,
         arg_rviz,
-        # arg_rviz_cfg_file,
+        arg_rviz_cfg,
         arg_use_sim_time,
-        include_launch_gazebo,
-        node_spawn_robot,
-        node_robot_state_pub,
-        node_joint_state_pub,
-        node_rviz,
+
+        # We set up Nodes and Commands that require the values in launch args in a separate function,
+        #   since we don't have access to them until AFTER get_launch_description() returns (without extensive hackery).
+        #   OpaqueFunction allows us to add that separate function to the launch description to be executed later.
+        OpaqueFunction(function=launch_setup),
     ])
