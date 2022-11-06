@@ -1,0 +1,41 @@
+FROM ros:foxy-ros-base-focal
+
+ARG UNAME=dev
+ARG UID=1000
+ARG GID=1000
+ARG PASSWD=''
+
+# creates user
+RUN useradd --create-home   \
+    --shell /bin/bash       \ 
+    --gid root              \
+    --uid ${UID}            \
+    --groups sudo           \
+    --password "$(openssl passwd -6 ${PASSWD})" \
+    ${UNAME}
+
+USER ${UNAME}
+WORKDIR /home/${UNAME}
+
+# workspace/src will contain ros packages
+RUN mkdir -p workspace/src
+
+# install dependencies
+COPY bash bash
+RUN cd bash
+
+# install ros packages
+COPY docker/ros-packages.list ros-packages.list
+RUN sudo apt update && \
+    cd bash && \
+    ./install-deps.sh --file ~/ros-packages.list
+
+# install generic packages
+COPY docker/packages.list packages.list
+RUN sudo apt update && \
+    cd bash && \
+    ./install-deps.sh --file ~/packages.list
+
+
+ENTRYPOINT ["/ros_entrypoint.sh"]
+CMD ["/bin/bash"]

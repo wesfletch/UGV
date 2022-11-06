@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+
+source "./bash/common.sh"
+
+function usage ()
+{
+cat <<EOF
+This is bullshit. asodfgaoidjf;aosdnjf;
+EOF
+}
+
+function prepareWorkspace() 
+# arg 1: workspace dir path; defaults to current directory
+# arg 2: path to workspace contents; defaults to PWD/ros
+{
+    local workspaceDir=${1:-"${PWD}"}
+    local workspaceContents=${2:-"${PWD}/ros"} 
+
+    local targetWorkspace="${workspaceDir}/workspace/$(basename ${workspaceContents})"
+
+    # creates a workspace directory if one doesn't exist
+    if ! [[ -d "${workspaceDir}/workspace" ]]; then
+        echo "Creating workspace dir at ${workspaceDir}/workspace"
+        sudo mkdir -p "${workspaceDir}/workspace/src"
+    fi
+
+    # generates a symlink to workspaceContents directory (if it doesn't already exist/isn't a symlink)
+    if ! { [[ -d "${targetWorkspace}" ]] && [[ -L "${targetWorkspace}" ]]; }; then
+        sudo ln -s "${workspaceContents}" "${workspaceDir}/workspace/$(basename ${workspaceContents})"
+    fi
+}
+
+function buildContainer() 
+{
+    docker build \
+        --tag ugv-devel \
+        --file docker/Dockerfile.ros2 \
+        --build-arg UNAME=${USER} \
+        ${PWD}
+}
+
+while (( "$#" ))
+do
+    case "${1}" in 
+        -b|--build)
+            buildContainer
+            exit 0
+            ;;
+        -w|--workspace)
+            shift 1 
+            # reads in a comma-delimited array of args to pass to function
+            IFS="," read -a argsArr <<< ${1}
+            prepareWorkspace ${argsArr[@]}
+            exit 0 
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            throwError 1 "Argument not supported: ${ARG}"
+            ;;
+    esac
+    shift 1
+done
+
+# generates unique identifier post-string for containers
+uniqueID="$(echo ${RANDOM} | md5sum | head -c 16)"
+
+docker run \
+    --interactive=true \
+    --tty=true \
+    --name ugv-devel-${uniqueID} \
+    --mount type=bind,source=$(realpath "${PWD}"/ros),destination=/home/$USER/workspace/src,bind-propagation=rslave \
+    ugv-devel:latest
