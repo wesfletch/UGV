@@ -34,8 +34,10 @@ do
     esac
 done
 
-echo "Loading package list from file: ${FILE:-${DEFAULT_FILE}}"
+for LIST in ./*.list; do
+    echo "Loading package list from file: ${LIST:-}"
 
-# packages="$(cat ${FILE:-${DEFAULT_FILE}})"
-readarray -t packages < ${FILE:-${DEFAULT_FILE}}
-sudo apt install -y "${packages[@]}"
+    readarray -t packages < ${LIST:-}
+    sudo apt install -y "${packages[@]}"
+done
+

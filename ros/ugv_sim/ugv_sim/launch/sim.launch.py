@@ -11,6 +11,7 @@ from launch.substitutions import LaunchConfiguration, Command, PathJoinSubstitut
 from launch_ros.actions import Node
 from launch_ros.descriptions import ParameterValue
 from launch_ros.substitutions import FindPackageShare
+from launch.conditions import IfCondition
 
 def launch_setup(context: LaunchContext, *foo, **bar):
 
@@ -18,6 +19,7 @@ def launch_setup(context: LaunchContext, *foo, **bar):
     robot_name          = LaunchConfiguration("robot_name")
     world_file          = LaunchConfiguration("world_file")
     rviz_cfg_file       = LaunchConfiguration("rviz_cfg")
+    arg_rviz            = LaunchConfiguration("rviz")
 
     # generate robot description (URDF) by processing model.urdf.xacro with the 'xacro ...' command
     robot_description_content = Command(
@@ -80,6 +82,7 @@ def launch_setup(context: LaunchContext, *foo, **bar):
         executable="rviz2",
         name="rviz",
         arguments=['-d', rviz_cfg_file],
+        condition=IfCondition(arg_rviz),
     )
 
     nodes_to_start = [

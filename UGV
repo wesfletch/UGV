@@ -5,7 +5,10 @@ source "./bash/common.sh"
 function usage ()
 {
 cat <<EOF
-This is bullshit. asodfgaoidjf;aosdnjf;
+Usage: ./UGV <command> [--[options]]
+    Commands:
+        build           Build the container.
+        workspace       Create a working directory for this project.
 EOF
 }
 
@@ -31,45 +34,65 @@ function prepareWorkspace()
 }
 
 function buildContainer() 
+# arg 1: build w/out cache [true/false]
 {
-    docker build \
+    local nocache="${1:-false}"
+
+    echo "Building container with no-cache=${nocache:-false}"
+
+    # remap nocache
+    if [[ "${nocache}" == "true" ]]; then
+        nocache="--no-cache"
+    else 
+        unset nocache
+    fi
+
+    docker build ${nocache} \
         --tag ugv-devel \
         --file docker/Dockerfile.ros2 \
-        --build-arg UNAME=${USER} \
-        ${PWD}
+        --build-arg UNAME="${USER}" \
+        "${PWD}"
 }
 
+COMMAND="RUN"
 while (( "$#" ))
 do
     case "${1}" in 
-        -b|--build)
-            buildContainer
-            exit 0
+        build)
+            COMMAND="BUILD"
             ;;
-        -w|--workspace)
+        workspace)
             shift 1 
             # reads in a comma-delimited array of args to pass to function
             IFS="," read -a argsArr <<< ${1}
             prepareWorkspace ${argsArr[@]}
             exit 0 
             ;;
+        --nocache)
+            nocache="true"
+            ;;
         -h|--help)
             usage
             exit 0
             ;;
         *)
-            throwError 1 "Argument not supported: ${ARG}"
+            throwError 1 "Argument not supported: ${1}"
             ;;
     esac
     shift 1
 done
 
-# generates unique identifier post-string for containers
-uniqueID="$(echo ${RANDOM} | md5sum | head -c 16)"
+if [[ "${COMMAND:-}" == "BUILD" ]]; then
+    buildContainer "${nocache:-}"
 
-docker run \
-    --interactive=true \
-    --tty=true \
-    --name ugv-devel-${uniqueID} \
-    --mount type=bind,source=$(realpath "${PWD}"/ros),destination=/home/$USER/workspace/src,bind-propagation=rslave \
-    ugv-devel:latest
+elif [[ "${COMMAND:-}" == "RUN" ]]; then
+    # generates unique identifier post-string for containers
+    uniqueID="$(echo ${RANDOM} | md5sum | head -c 16)"
+
+    docker run \
+        --interactive=true \
+        --tty=true \
+        --name ugv-devel-${uniqueID} \
+        --mount type=bind,source=$(realpath "${PWD}"/ros),destination=/home/$USER/workspace/src,bind-propagation=rslave \
+        ugv-devel:latest
+fi

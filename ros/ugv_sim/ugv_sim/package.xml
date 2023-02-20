@@ -13,10 +13,12 @@
 
   <!-- ROS packages -->
   <exec_depend>ros2launch</exec_depend>
-  <depend>hector_gazebo_plugins</depend>
+  <!-- <depend>hector_gazebo_plugins</depend> -->
   <depend>joint_state_publisher</depend>
   <depend>gazebo_ros</depend>
   <depend>gazebo_ros_pkgs</depend>
+  <depend>xacro</depend>
+  <depend>rviz2</depend>
 
   <!-- Python packages; https://github.com/ros/rosdistro/blob/master/rosdep/python.yaml-->
   <depend>pynput-pip</depend>

@@ -1,5 +1,8 @@
 FROM ros:foxy-ros-base-focal
 
+# use bash instead of /bin/sh
+SHELL ["/bin/bash", "-c"]
+
 ARG UNAME=dev
 ARG UID=1000
 ARG GID=1000
@@ -20,22 +23,29 @@ WORKDIR /home/${UNAME}
 # workspace/src will contain ros packages
 RUN mkdir -p workspace/src
 
-# install dependencies
+# install bash scripts
 COPY bash bash
 RUN cd bash
 
-# install ros packages
-COPY docker/ros-packages.list ros-packages.list
+# install prereq packages
+COPY docker/*.list bash/
 RUN sudo apt update && \
     cd bash && \
-    ./install-deps.sh --file ~/ros-packages.list
+    ./install-deps.sh
 
-# install generic packages
-COPY docker/packages.list packages.list
-RUN sudo apt update && \
-    cd bash && \
-    ./install-deps.sh --file ~/packages.list
+# temporarily install ROS packages for deps. and build artifacts
+COPY ros workspace/src/
 
+# rosdep to install package dependencies
+RUN cd workspace && \
+    rosdep update && \
+    rosdep install -y --from-paths src --ignore-src
+
+RUN cd workspace && \
+    source /opt/ros/foxy/setup.bash && \
+    colcon build --symlink-install
+
+RUN sudo rm -rf workspace/src/*
 
 ENTRYPOINT ["/ros_entrypoint.sh"]
 CMD ["/bin/bash"]
